@@ -1,1 +1,992 @@
+<!DOCTYPE html>
+<html lang="ja" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced HTML Live Previewer</title>
+    <!-- Tailwind CSS & FontAwesome Icons -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Inter Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        /* Hide default scrollbar for textarea/line numbers sync */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        editor: {
+                            bg: '#1e1e1e',
+                            text: '#d4d4d4',
+                            sidebar: '#252526',
+                            active: '#37373d'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="h-full bg-slate-50 text-slate-900 transition-colors duration-200 flex flex-col overflow-hidden dark:bg-slate-900 dark:text-slate-100">
 
+    <!-- Header Area -->
+    <header class="bg-white border-b border-slate-200 dark:bg-slate-800 dark:border-slate-700 px-4 py-3 flex items-center justify-between shadow-sm z-10 flex-none">
+        <div class="flex items-center space-x-3">
+            <div class="bg-indigo-600 text-white p-2 rounded-lg shadow-md flex items-center justify-center">
+                <i class="fa-solid fa-laptop-code text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold tracking-tight text-slate-800 dark:text-white flex items-center gap-2">
+                    HTML Previewer
+                    <span class="text-xs bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 px-2 py-0.5 rounded-full font-medium">Live</span>
+                </h1>
+                <p class="text-xs text-slate-500 dark:text-slate-400">リアルタイムHTMLエディタ＆プレビュー</p>
+            </div>
+        </div>
+
+        <!-- Toolbar controls -->
+        <div class="flex items-center space-x-2 md:space-x-3">
+            <!-- Template Dropdown -->
+            <div class="relative inline-block text-left" id="templateMenu">
+                <button type="button" onclick="toggleDropdown()" class="inline-flex items-center justify-center w-full rounded-lg border border-slate-300 dark:border-slate-600 shadow-sm px-3 py-2 bg-white dark:bg-slate-700 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 focus:outline-none">
+                    <i class="fa-solid fa-wand-magic-sparkles mr-2 text-indigo-500"></i>
+                    テンプレート
+                    <i class="fa-solid fa-chevron-down ml-2 text-xs"></i>
+                </button>
+                <div id="dropdownList" class="hidden origin-top-right absolute right-0 mt-2 w-56 rounded-lg shadow-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 ring-1 ring-black ring-opacity-5 divide-y divide-slate-100 dark:divide-slate-700 focus:outline-none z-50">
+                    <div class="py-1">
+                        <button onclick="loadTemplate('basic')" class="group flex items-center w-full px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                            <i class="fa-solid fa-file-code mr-3 text-slate-400 group-hover:text-indigo-500"></i>
+                            ベーシックHTML5
+                        </button>
+                        <button onclick="loadTemplate('tailwind')" class="group flex items-center w-full px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                            <i class="fa-brands fa-css3-alt mr-3 text-sky-400 group-hover:text-sky-500"></i>
+                            Tailwind CSSカード
+                        </button>
+                        <button onclick="loadTemplate('animation')" class="group flex items-center w-full px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                            <i class="fa-solid fa-circle-nodes mr-3 text-emerald-400 group-hover:text-emerald-500"></i>
+                            インタラクティブCanvas
+                        </button>
+                        <button onclick="loadTemplate('form')" class="group flex items-center w-full px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                            <i class="fa-solid fa-list-check mr-3 text-amber-400 group-hover:text-amber-500"></i>
+                            モダン問い合わせフォーム
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dark Mode Toggle -->
+            <button onclick="toggleTheme()" class="p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 shadow-sm" title="テーマ切り替え">
+                <i id="themeIcon" class="fa-solid fa-moon"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Mobile Navigation Tabs (Only visible on small screens) -->
+    <div class="flex md:hidden bg-slate-100 dark:bg-slate-800 p-1 border-b border-slate-200 dark:border-slate-700 flex-none">
+        <button id="tabBtnEditor" onclick="switchMobileTab('editor')" class="flex-1 py-2 text-sm font-medium rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm flex items-center justify-center gap-2">
+            <i class="fa-solid fa-code"></i> エディタ
+        </button>
+        <button id="tabBtnPreview" onclick="switchMobileTab('preview')" class="flex-1 py-2 text-sm font-medium rounded-md text-slate-600 dark:text-slate-400 flex items-center justify-center gap-2">
+            <i class="fa-solid fa-eye"></i> プレビュー
+        </button>
+    </div>
+
+    <!-- Main Workspace Area -->
+    <main class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+        
+        <!-- Left Panel: HTML Code Editor -->
+        <section id="editorPanel" class="w-full md:w-1/2 flex flex-col border-r border-slate-200 dark:border-slate-700 h-full overflow-hidden bg-slate-900 text-slate-100">
+            <!-- Editor Header Controls -->
+            <div class="bg-slate-850 border-b border-slate-800 px-4 py-2 flex items-center justify-between text-xs font-semibold text-slate-400 select-none bg-slate-950 flex-none">
+                <div class="flex items-center space-x-2">
+                    <span class="bg-orange-500 w-2.5 h-2.5 rounded-full inline-block"></span>
+                    <span class="tracking-wide">HTML / CSS / JS</span>
+                </div>
+                <div class="flex items-center space-x-1.5">
+                    <button onclick="clearEditor()" class="px-2.5 py-1.5 rounded hover:bg-slate-800 hover:text-white transition duration-150 flex items-center gap-1.5" title="クリア">
+                        <i class="fa-regular fa-trash-can"></i> <span>クリア</span>
+                    </button>
+                    <button onclick="copyToClipboard()" class="px-2.5 py-1.5 rounded hover:bg-slate-800 hover:text-white transition duration-150 flex items-center gap-1.5" title="コードをコピー">
+                        <i class="fa-regular fa-copy"></i> <span>コピー</span>
+                    </button>
+                    <button onclick="downloadCode()" class="px-2.5 py-1.5 rounded hover:bg-slate-800 hover:text-white transition duration-150 flex items-center gap-1.5" title="HTMLとして保存">
+                        <i class="fa-solid fa-download"></i> <span>保存</span>
+                    </button>
+                    <button onclick="toggleFullscreen('editor')" class="px-2.5 py-1.5 rounded hover:bg-slate-800 hover:text-white transition duration-150 flex items-center" title="エディタ最大化">
+                        <i id="editorMaximizeIcon" class="fa-solid fa-expand"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Editor Text Area & Line Numbers -->
+            <div class="flex-1 flex overflow-hidden relative">
+                <!-- Line Numbers (synchronized scroll via JS) -->
+                <div id="lineNumbers" class="w-12 bg-slate-950 text-slate-600 text-right pr-2 py-4 select-none code-font text-sm leading-relaxed border-r border-slate-850 overflow-hidden no-scrollbar">
+                    <div>1</div>
+                </div>
+                <!-- Actual Textarea Editor -->
+                <textarea id="htmlEditor" 
+                    class="flex-1 bg-slate-900 text-slate-100 p-4 outline-none resize-none code-font text-sm leading-relaxed overflow-y-auto w-full h-full whitespace-pre" 
+                    placeholder="ここにHTMLコードを入力してください..." 
+                    spellcheck="false"
+                    onscroll="syncScroll()"
+                    oninput="handleEditorInput()"></textarea>
+            </div>
+
+            <!-- Auto Refresh status bar -->
+            <div class="bg-slate-950 border-t border-slate-800 px-4 py-1.5 flex items-center justify-between text-xs text-slate-500 select-none flex-none">
+                <div class="flex items-center gap-1.5">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span>自動同期有効</span>
+                </div>
+                <div id="charCounter">0 文字</div>
+            </div>
+        </section>
+
+        <!-- Right Panel: Live Preview Frame & Interactive Tools -->
+        <section id="previewPanel" class="hidden md:flex w-full md:w-1/2 flex-col h-full overflow-hidden bg-slate-100 dark:bg-slate-950">
+            <!-- Preview Controls Bar -->
+            <div class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 py-2 flex items-center justify-between text-xs font-semibold text-slate-600 dark:text-slate-300 flex-none select-none">
+                <!-- Device Viewport Simulators -->
+                <div class="flex items-center space-x-1 bg-slate-100 dark:bg-slate-900 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                    <button onclick="setViewportSize('desktop')" id="vpDesktop" class="px-2.5 py-1.5 rounded-md bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm flex items-center gap-1" title="デスクトップ表示">
+                        <i class="fa-solid fa-desktop"></i> <span class="hidden lg:inline">Desktop</span>
+                    </button>
+                    <button onclick="setViewportSize('tablet')" id="vpTablet" class="px-2.5 py-1.5 rounded-md hover:bg-white dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center gap-1" title="タブレット表示">
+                        <i class="fa-solid fa-tablet-screen-button"></i> <span class="hidden lg:inline">Tablet</span>
+                    </button>
+                    <button onclick="setViewportSize('mobile')" id="vpMobile" class="px-2.5 py-1.5 rounded-md hover:bg-white dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center gap-1" title="モバイル表示">
+                        <i class="fa-solid fa-mobile-screen-button"></i> <span class="hidden lg:inline">Mobile</span>
+                    </button>
+                </div>
+
+                <!-- Run & Window control -->
+                <div class="flex items-center space-x-2">
+                    <button onclick="updatePreview(true)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg font-medium shadow-sm flex items-center gap-1.5 transition duration-150" title="プレビューを強制再読み込み">
+                        <i class="fa-solid fa-rotate"></i> <span>再読み込み</span>
+                    </button>
+                    <button onclick="toggleFullscreen('preview')" class="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" title="プレビュー最大化">
+                        <i id="previewMaximizeIcon" class="fa-solid fa-expand"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Responsive Wrapper Container for Iframe -->
+            <div class="flex-1 bg-slate-200 dark:bg-slate-900 p-4 flex justify-center items-start overflow-auto">
+                <div id="iframeWrapper" class="w-full h-full bg-white dark:bg-white rounded-lg shadow-lg border border-slate-300 dark:border-slate-800 overflow-hidden transition-all duration-300">
+                    <iframe id="previewFrame" class="w-full h-full border-0 bg-white" sandbox="allow-scripts allow-modals allow-same-origin"></iframe>
+                </div>
+            </div>
+
+            <!-- Console Area -->
+            <div id="consoleContainer" class="border-t border-slate-200 dark:border-slate-700 bg-slate-950 text-slate-200 flex flex-col transition-all duration-300 flex-none h-40">
+                <!-- Console Header -->
+                <div class="bg-slate-900 px-4 py-2 flex items-center justify-between border-b border-slate-800 text-xs font-semibold select-none">
+                    <div class="flex items-center space-x-2 text-slate-400">
+                        <i class="fa-solid fa-terminal text-emerald-500"></i>
+                        <span>コンソール出力</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="clearConsole()" class="text-slate-500 hover:text-slate-300 transition duration-150 px-1.5 py-1 rounded" title="コンソール出力をクリア">
+                            <i class="fa-solid fa-ban"></i>
+                        </button>
+                        <button onclick="toggleConsoleHeight()" class="text-slate-500 hover:text-slate-300 transition duration-150 px-1.5 py-1 rounded" title="コンソールの高さを切り替え">
+                            <i id="consoleSizeIcon" class="fa-solid fa-chevron-down"></i>
+                        </button>
+                    </div>
+                </div>
+                <!-- Console Logs Output -->
+                <div id="consoleLogContainer" class="flex-1 overflow-y-auto p-3 code-font text-xs space-y-1 bg-slate-950">
+                    <div class="text-slate-500 italic">コンソール出力はここにリアルタイムに表示されます。</div>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- Floating Alert Element -->
+    <div id="alertBox" class="fixed bottom-6 right-6 transform translate-y-10 opacity-0 pointer-events-none transition-all duration-300 bg-slate-900 text-white dark:bg-white dark:text-slate-950 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 z-50 max-w-sm border border-slate-800 dark:border-slate-200">
+        <span id="alertIcon" class="text-indigo-500 text-lg"><i class="fa-solid fa-circle-info"></i></span>
+        <span id="alertMessage" class="text-sm font-medium">お知らせ</span>
+    </div>
+
+    <script>
+        // DOM Elements cache
+        const htmlEditor = document.getElementById('htmlEditor');
+        const lineNumbers = document.getElementById('lineNumbers');
+        const previewFrame = document.getElementById('previewFrame');
+        const consoleLogContainer = document.getElementById('consoleLogContainer');
+        const iframeWrapper = document.getElementById('iframeWrapper');
+        const themeIcon = document.getElementById('themeIcon');
+        const dropdownList = document.getElementById('dropdownList');
+        const charCounter = document.getElementById('charCounter');
+        const consoleContainer = document.getElementById('consoleContainer');
+        const consoleSizeIcon = document.getElementById('consoleSizeIcon');
+
+        // State storage
+        let debounceTimer;
+        let isDarkMode = false;
+        let currentViewport = 'desktop'; // desktop, tablet, mobile
+        let consoleCollapsed = false;
+        let activeMobileTab = 'editor'; // editor, preview
+
+        // All templates use standard non-escaped strings to eliminate SyntaxErrors safely.
+        const templates = {
+            basic: [
+                '<!DOCTYPE html>',
+                '<html lang="ja">',
+                '<head>',
+                '    <meta charset="UTF-8">',
+                '    <title>Hello World</title>',
+                '    <style>',
+                '        body {',
+                '            font-family: system-ui, sans-serif;',
+                '            text-align: center;',
+                '            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);',
+                '            height: 100vh;',
+                '            margin: 0;',
+                '            display: flex;',
+                '            align-items: center;',
+                '            justify-content: center;',
+                '        }',
+                '        .container {',
+                '            background: white;',
+                '            padding: 3rem;',
+                '            border-radius: 20px;',
+                '            box-shadow: 0 10px 30px rgba(0,0,0,0.1);',
+                '            max-width: 400px;',
+                '        }',
+                '        h1 {',
+                '            color: #4f46e5;',
+                '            margin-bottom: 10px;',
+                '        }',
+                '        p {',
+                '            color: #64748b;',
+                '        }',
+                '        button {',
+                '            background: #4f46e5;',
+                '            color: white;',
+                '            border: none;',
+                '            padding: 10px 20px;',
+                '            border-radius: 8px;',
+                '            cursor: pointer;',
+                '            font-size: 1rem;',
+                '            transition: background 0.2s;',
+                '        }',
+                '        button:hover {',
+                '            background: #4338ca;',
+                '        }',
+                '    </style>',
+                '</head>',
+                '<body>',
+                '    <div class="container">',
+                '        <h1>HTML Previewer</h1>',
+                '        <p>HTMLの構築が瞬時にプレビューできます。JavaScriptも記述可能です。</p>',
+                '        <button onclick="sayHello()">ここを押してね</button>',
+                '    </div>',
+                '',
+                '    <script>',
+                '        function sayHello() {',
+                '            console.log("ボタンがクリックされました！");',
+                '            alert("こんにちは！リアルタイムプレビューの世界へようこそ。");',
+                '        }',
+                '    </' + 'script>',
+                '</body>',
+                '</html>'
+            ].join('\n'),
+
+            tailwind: [
+                '<!DOCTYPE html>',
+                '<html lang="ja">',
+                '<head>',
+                '    <meta charset="UTF-8">',
+                '    <meta name="viewport" content="width=device-width, initial-scale=1.0">',
+                '    <!-- Load Tailwind CSS -->',
+                '    <script src="https://cdn.tailwindcss.com"></' + 'script>',
+                '    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">',
+                '    <title>Tailwind Card Template</title>',
+                '</head>',
+                '<body class="bg-slate-50 flex items-center justify-center min-h-screen p-6">',
+                '',
+                '    <div class="max-w-md w-full bg-white rounded-3xl shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">',
+                '        <!-- Card Cover -->',
+                '        <div class="h-48 bg-gradient-to-r from-violet-600 to-indigo-600 flex items-center justify-center relative">',
+                '            <div class="absolute inset-0 bg-black opacity-10"></div>',
+                '            <i class="fa-solid fa-wand-magic-sparkles text-7xl text-white opacity-80 animate-pulse"></i>',
+                '        </div>',
+                '',
+                '        <!-- Card Body -->',
+                '        <div class="p-6">',
+                '            <div class="flex justify-between items-center mb-4">',
+                '                <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full">Web開発</span>',
+                '                <span class="text-slate-400 text-sm">今日</span>',
+                '            </div>',
+                '            ',
+                '            <h2 class="text-2xl font-bold text-slate-800 mb-2 leading-snug">Tailwind CSS テンプレート</h2>',
+                '            <p class="text-slate-600 text-sm mb-6 leading-relaxed">',
+                '                外部CDNからTailwind CSSを読み込んでいるため、美しいモダンなレイアウトが直感的にマークアップできます。ユーティリティクラスを活用して開発スピードをアップ！',
+                '            </p>',
+                '',
+                '            <!-- Card Footer -->',
+                '            <div class="flex items-center justify-between border-t border-slate-100 pt-4">',
+                '                <div class="flex items-center space-x-3">',
+                '                    <div class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-700">G</div>',
+                '                    <div>',
+                '                        <p class="text-sm font-bold text-slate-800">Gemini Creator</p>',
+                '                        <p class="text-xs text-slate-400">プロンプトデザイナー</p>',
+                '                    </div>',
+                '                </div>',
+                '                <button onclick="clickHeart()" class="text-slate-400 hover:text-rose-500 transition-colors duration-200 p-2 text-lg">',
+                '                    <i id="heartIcon" class="fa-regular fa-heart"></i>',
+                '                </button>',
+                '            </div>',
+                '        </div>',
+                '    </div>',
+                '',
+                '    <script>',
+                '        let liked = false;',
+                '        function clickHeart() {',
+                '            liked = !liked;',
+                '            const icon = document.getElementById("heartIcon");',
+                '            if (liked) {',
+                '                icon.classList.remove("fa-regular", "fa-heart");',
+                '                icon.classList.add("fa-solid", "fa-heart", "text-rose-500");',
+                '                console.log("お気に入りに登録されました！");',
+                '            } else {',
+                '                icon.classList.remove("fa-solid", "fa-heart", "text-rose-500");',
+                '                icon.classList.add("fa-regular", "fa-heart");',
+                '                console.log("お気に入りが解除されました。");',
+                '            }',
+                '        }',
+                '    </' + 'script>',
+                '</body>',
+                '</html>'
+            ].join('\n'),
+
+            animation: [
+                '<!DOCTYPE html>',
+                '<html lang="ja">',
+                '<head>',
+                '    <meta charset="UTF-8">',
+                '    <title>Canvas Particle Animation</title>',
+                '    <style>',
+                '        body, html {',
+                '            margin: 0;',
+                '            padding: 0;',
+                '            width: 100%;',
+                '            height: 100%;',
+                '            overflow: hidden;',
+                '            background-color: #0c0f1d;',
+                '            font-family: sans-serif;',
+                '        }',
+                '        canvas {',
+                '            display: block;',
+                '        }',
+                '        .hud {',
+                '            position: absolute;',
+                '            top: 20px;',
+                '            left: 20px;',
+                '            color: #8f9fc2;',
+                '            pointer-events: none;',
+                '            user-select: none;',
+                '        }',
+                '        h1 { margin: 0 0 5px 0; font-size: 1.5rem; color: #fff; }',
+                '        p { margin: 0; font-size: 0.9rem; opacity: 0.7; }',
+                '    </style>',
+                '</head>',
+                '<body>',
+                '    <div class="hud">',
+                '        <h1>Particle Canvas</h1>',
+                '        <p>マウスを動かしてね（インタラクティブ連動）</p>',
+                '    </div>',
+                '    <canvas id="particleCanvas"></canvas>',
+                '',
+                '    <script>',
+                '        const canvas = document.getElementById("particleCanvas");',
+                '        const ctx = canvas.getContext("2d");',
+                '',
+                '        let particlesArray = [];',
+                '        const mouse = {',
+                '            x: null,',
+                '            y: null,',
+                '            radius: 120',
+                '        }',
+                '',
+                '        window.addEventListener("mousemove", function(event) {',
+                '            mouse.x = event.x;',
+                '            mouse.y = event.y;',
+                '        });',
+                '',
+                '        window.addEventListener("resize", function() {',
+                '            canvas.width = window.innerWidth;',
+                '            canvas.height = window.innerHeight;',
+                '            init();',
+                '        });',
+                '',
+                '        canvas.width = window.innerWidth;',
+                '        canvas.height = window.innerHeight;',
+                '',
+                '        class Particle {',
+                '            constructor(x, y, directionX, directionY, size, color) {',
+                '                this.x = x;',
+                '                this.y = y;',
+                '                this.directionX = directionX;',
+                '                this.directionY = directionY;',
+                '                this.size = size;',
+                '                this.color = color;',
+                '            }',
+                '            draw() {',
+                '                ctx.beginPath();',
+                '                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);',
+                '                ctx.fillStyle = this.color;',
+                '                ctx.fill();',
+                '            }',
+                '            update() {',
+                '                if (this.x > canvas.width || this.x < 0) {',
+                '                    this.directionX = -this.directionX;',
+                '                }',
+                '                if (this.y > canvas.height || this.y < 0) {',
+                '                    this.directionY = -this.directionY;',
+                '                }',
+                '                ',
+                '                let dx = mouse.x - this.x;',
+                '                let dy = mouse.y - this.y;',
+                '                let distance = Math.sqrt(dx*dx + dy*dy);',
+                '                if (distance < mouse.radius + this.size) {',
+                '                    if (mouse.x < this.x && this.x < canvas.width - this.size * 10) {',
+                '                        this.x += 10;',
+                '                    }',
+                '                    if (mouse.x > this.x && this.x > this.size * 10) {',
+                '                        this.x -= 10;',
+                '                    }',
+                '                    if (mouse.y < this.y && this.y < canvas.height - this.size * 10) {',
+                '                        this.y += 10;',
+                '                    }',
+                '                    if (mouse.y > this.y && this.y > this.size * 10) {',
+                '                        this.y -= 10;',
+                '                    }',
+                '                }',
+                '                ',
+                '                this.x += this.directionX;',
+                '                this.y += this.directionY;',
+                '                this.draw();',
+                '            }',
+                '        }',
+                '',
+                '        function init() {',
+                '            particlesArray = [];',
+                '            let numberOfParticles = (canvas.width * canvas.height) / 9000;',
+                '            for (let i = 0; i < numberOfParticles; i++) {',
+                '                let size = (Math.random() * 5) + 1;',
+                '                let x = (Math.random() * ((canvas.width - size * 2) - (size * 2)) + size * 2);',
+                '                let y = (Math.random() * ((canvas.height - size * 2) - (size * 2)) + size * 2);',
+                '                let directionX = (Math.random() * 2) - 1;',
+                '                let directionY = (Math.random() * 2) - 1;',
+                '                let color = "rgba(129, 140, 248, " + (Math.random() * 0.8 + 0.2) + ")";',
+                '',
+                '                particlesArray.push(new Particle(x, y, directionX, directionY, size, color));',
+                '            }',
+                '        }',
+                '',
+                '        function animate() {',
+                '            requestAnimationFrame(animate);',
+                '            ctx.clearRect(0, 0, canvas.width, canvas.height);',
+                '',
+                '            for (let i = 0; i < particlesArray.length; i++) {',
+                '                particlesArray[i].update();',
+                '            }',
+                '            connect();',
+                '        }',
+                '',
+                '        function connect() {',
+                '            let opacityValue = 1;',
+                '            for (let a = 0; a < particlesArray.length; a++) {',
+                '                for (let b = a; b < particlesArray.length; b++) {',
+                '                    let distSq = ((particlesArray[a].x - particlesArray[b].x) * (particlesArray[a].x - particlesArray[b].x))',
+                '                               + ((particlesArray[a].y - particlesArray[b].y) * (particlesArray[a].y - particlesArray[b].y));',
+                '                    if (distSq < (canvas.width/7) * (canvas.height/7)) {',
+                '                        opacityValue = 1 - (distSq/20000);',
+                '                        ctx.strokeStyle = "rgba(99, 102, 241, " + opacityValue + ")";',
+                '                        ctx.lineWidth = 1;',
+                '                        ctx.beginPath();',
+                '                        ctx.moveTo(particlesArray[a].x, particlesArray[a].y);',
+                '                        ctx.lineTo(particlesArray[b].x, particlesArray[b].y);',
+                '                        ctx.stroke();',
+                '                    }',
+                '                }',
+                '            }',
+                '        }',
+                '',
+                '        init();',
+                '        animate();',
+                '        console.log("Canvasパーティクル初期化成功、総オブジェクト数: " + particlesArray.length);',
+                '    </' + 'script>',
+                '</body>',
+                '</html>'
+            ].join('\n'),
+
+            form: [
+                '<!DOCTYPE html>',
+                '<html lang="ja">',
+                '<head>',
+                '    <meta charset="UTF-8">',
+                '    <meta name="viewport" content="width=device-width, initial-scale=1.0">',
+                '    <script src="https://cdn.tailwindcss.com"></' + 'script>',
+                '    <title>Contact Form</title>',
+                '</head>',
+                '<body class="bg-indigo-50/50 flex items-center justify-center min-h-screen p-4">',
+                '    <div class="bg-white w-full max-w-lg rounded-2xl shadow-lg border border-indigo-100 p-8">',
+                '        <h2 class="text-2xl font-bold text-slate-800 mb-2">お問い合わせ</h2>',
+                '        <p class="text-slate-500 text-sm mb-6">ご質問、仕事のご依頼などお気軽にお寄せください。</p>',
+                '        ',
+                '        <form onsubmit="handleSubmit(event)" class="space-y-4">',
+                '            <div>',
+                '                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">お名前</label>',
+                '                <input type="text" id="name" required class="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition duration-150" placeholder="山田 太郎">',
+                '            </div>',
+                '            <div>',
+                '                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">メールアドレス</label>',
+                '                <input type="email" id="email" required class="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition duration-150" placeholder="taro@example.com">',
+                '            </div>',
+                '            <div>',
+                '                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">メッセージ内容</label>',
+                '                <textarea id="message" required rows="4" class="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition duration-150 resize-none" placeholder="メッセージを入力してください..."></textarea>',
+                '            </div>',
+                '            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl shadow-md hover:shadow-lg transition-all duration-200">',
+                '                送信する',
+                '            </button>',
+                '        </form>',
+                '    </div>',
+                '',
+                '    <script>',
+                '        function handleSubmit(event) {',
+                '            event.preventDefault();',
+                '            const name = document.getElementById("name").value;',
+                '            const email = document.getElementById("email").value;',
+                '            const message = document.getElementById("message").value;',
+                '            ',
+                '            console.log("送信イベント検知しました：", { name, email, message });',
+                '            alert("ありがとうございます！「" + name + "」様のお問い合わせを受け付けました。(※これはデモです)");',
+                '        }',
+                '    </' + 'script>',
+                '</body>',
+                '</html>'
+            ].join('\n')
+        };
+
+        // Synchronize line numbers count and position with textarea content
+        function syncScroll() {
+            lineNumbers.scrollTop = htmlEditor.scrollTop;
+        }
+
+        function updateLineNumbers() {
+            const text = htmlEditor.value;
+            const lines = text.split('\n');
+            const lineCount = lines.length;
+            
+            let lineNumHTML = '';
+            for (let i = 1; i <= lineCount; i++) {
+                lineNumHTML += '<div>' + i + '</div>';
+            }
+            lineNumbers.innerHTML = lineNumHTML;
+            charCounter.textContent = text.length.toLocaleString() + ' 文字';
+        }
+
+        // Dropdown Toggle
+        function toggleDropdown() {
+            dropdownList.classList.toggle('hidden');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const menu = document.getElementById('templateMenu');
+            if (menu && !menu.contains(event.target)) {
+                dropdownList.classList.add('hidden');
+            }
+        });
+
+        // Load specific template into Editor
+        function loadTemplate(templateKey) {
+            if (templates[templateKey]) {
+                htmlEditor.value = templates[templateKey];
+                updateLineNumbers();
+                updatePreview(true);
+                dropdownList.classList.add('hidden');
+                showAlert('テンプレートを読み込みました！', 'fa-solid fa-wand-magic-sparkles');
+            }
+        }
+
+        // Build console logging interception payload securely without template literals or escaping quotes
+        const consoleCaptureCode = [
+            '<script>',
+            '    (function() {',
+            '        const _log = console.log;',
+            '        const _error = console.error;',
+            '        const _warn = console.warn;',
+            '        ',
+            '        // Post messages to parent window',
+            '        console.log = function(...args) {',
+            '            window.parent.postMessage({type: "console_log", data: args.map(arg => typeof arg === "object" ? JSON.stringify(arg) : arg).join(" ")}, "*");',
+            '            _log.apply(console, args);',
+            '        };',
+            '        console.error = function(...args) {',
+            '            window.parent.postMessage({type: "console_error", data: args.map(arg => typeof arg === "object" ? JSON.stringify(arg) : arg).join(" ")}, "*");',
+            '            _error.apply(console, args);',
+            '        };',
+            '        console.warn = function(...args) {',
+            '            window.parent.postMessage({type: "console_warn", data: args.map(arg => typeof arg === "object" ? JSON.stringify(arg) : arg).join(" ")}, "*");',
+            '            _warn.apply(console, args);',
+            '        };',
+            '        window.addEventListener("error", function(e) {',
+            '            window.parent.postMessage({type: "console_error", data: e.message}, "*");',
+            '        });',
+            '    })();',
+            '</' + 'script>'
+        ].join('\n');
+
+        // Update Frame Preview (with Debounce)
+        function handleEditorInput() {
+            updateLineNumbers();
+            clearTimeout(debounceTimer);
+            // Auto update preview after 600ms
+            debounceTimer = setTimeout(() => {
+                updatePreview(false);
+            }, 600);
+        }
+
+        function updatePreview(clearLogs = false) {
+            if (clearLogs) {
+                clearConsole();
+            }
+
+            const rawHTML = htmlEditor.value;
+            // Inject console capturing scripts right before the first tag or at top
+            let processedHTML = rawHTML;
+            if (rawHTML.includes('<head>')) {
+                processedHTML = rawHTML.replace('<head>', '<head>' + consoleCaptureCode);
+            } else {
+                processedHTML = consoleCaptureCode + rawHTML;
+            }
+
+            try {
+                const iframeDoc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+                iframeDoc.open();
+                iframeDoc.write(processedHTML);
+                iframeDoc.close();
+            } catch (err) {
+                appendConsoleLog(err.message, 'error');
+            }
+        }
+
+        // Listen messages from preview iframe console overrides
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.type) {
+                switch (event.data.type) {
+                    case 'console_log':
+                        appendConsoleLog(event.data.data, 'log');
+                        break;
+                    case 'console_error':
+                        appendConsoleLog(event.data.data, 'error');
+                        break;
+                    case 'console_warn':
+                        appendConsoleLog(event.data.data, 'warn');
+                        break;
+                }
+            }
+        });
+
+        function appendConsoleLog(message, type = 'log') {
+            const emptyNotice = consoleLogContainer.querySelector('.italic');
+            if (emptyNotice) {
+                emptyNotice.remove();
+            }
+
+            const logRow = document.createElement('div');
+            logRow.className = 'py-1 border-b border-slate-900 flex items-start space-x-2';
+            
+            let badgeColor = 'text-slate-400';
+            let textColor = 'text-slate-300';
+            let icon = 'fa-solid fa-chevron-right text-[10px] mt-0.5';
+
+            if (type === 'error') {
+                badgeColor = 'text-red-500';
+                textColor = 'text-red-400 bg-red-950/20 px-1 rounded';
+                icon = 'fa-solid fa-circle-exclamation';
+            } else if (type === 'warn') {
+                badgeColor = 'text-amber-500';
+                textColor = 'text-amber-300 bg-amber-950/20 px-1 rounded';
+                icon = 'fa-solid fa-triangle-exclamation';
+            }
+
+            logRow.innerHTML = 
+                '<span class="' + badgeColor + '"><i class="' + icon + '"></i></span>' +
+                '<span class="' + textColor + ' flex-1 break-all">' + escapeHTML(message) + '</span>';
+
+            consoleLogContainer.appendChild(logRow);
+            consoleLogContainer.scrollTop = consoleLogContainer.scrollHeight;
+        }
+
+        function clearConsole() {
+            consoleLogContainer.innerHTML = '<div class="text-slate-500 italic">コンソール出力はここにリアルタイムに表示されます。</div>';
+        }
+
+        function toggleConsoleHeight() {
+            consoleCollapsed = !consoleCollapsed;
+            if (consoleCollapsed) {
+                consoleContainer.classList.remove('h-40');
+                consoleContainer.classList.add('h-10');
+                consoleSizeIcon.className = 'fa-solid fa-chevron-up';
+            } else {
+                consoleContainer.classList.remove('h-10');
+                consoleContainer.classList.add('h-40');
+                consoleSizeIcon.className = 'fa-solid fa-chevron-down';
+            }
+        }
+
+        // Helper to escape HTML string
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                function(tag) {
+                    return {
+                        '&': '&amp;',
+                        '<': '&lt;',
+                        '>': '&gt;',
+                        "'": '&#39;',
+                        '"': '&quot;'
+                    }[tag] || tag;
+                }
+            );
+        }
+
+        // Responsive Viewport switches
+        function setViewportSize(size) {
+            currentViewport = size;
+            const buttons = {
+                desktop: document.getElementById('vpDesktop'),
+                tablet: document.getElementById('vpTablet'),
+                mobile: document.getElementById('vpMobile')
+            };
+
+            // Reset buttons styling
+            Object.keys(buttons).forEach(function(key) {
+                buttons[key].className = 'px-2.5 py-1.5 rounded-md hover:bg-white dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center gap-1';
+            });
+
+            // Set active button styling
+            buttons[size].className = 'px-2.5 py-1.5 rounded-md bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm flex items-center gap-1';
+
+            // Resize Wrapper Frame
+            if (size === 'desktop') {
+                iframeWrapper.style.width = '100%';
+                iframeWrapper.style.height = '100%';
+            } else if (size === 'tablet') {
+                iframeWrapper.style.width = '768px';
+                iframeWrapper.style.height = '1024px';
+                iframeWrapper.style.maxWidth = '100%';
+                iframeWrapper.style.maxHeight = '100%';
+            } else if (size === 'mobile') {
+                iframeWrapper.style.width = '375px';
+                iframeWrapper.style.height = '667px';
+                iframeWrapper.style.maxWidth = '100%';
+                iframeWrapper.style.maxHeight = '100%';
+            }
+        }
+
+        // Toggle Fullscreen (Expanded container) for either Editor or Preview
+        function toggleFullscreen(pane) {
+            const editorPanel = document.getElementById('editorPanel');
+            const previewPanel = document.getElementById('previewPanel');
+            const editorIcon = document.getElementById('editorMaximizeIcon');
+            const previewIcon = document.getElementById('previewMaximizeIcon');
+
+            if (pane === 'editor') {
+                if (previewPanel.classList.contains('hidden')) {
+                    // Restore default half-half view
+                    previewPanel.classList.remove('hidden');
+                    previewPanel.classList.add('md:flex');
+                    editorPanel.classList.add('md:w-1/2');
+                    editorIcon.className = 'fa-solid fa-expand';
+                    showAlert('通常表示に戻しました。', 'fa-solid fa-compress');
+                } else {
+                    // Fullscreen Editor
+                    previewPanel.classList.add('hidden');
+                    previewPanel.classList.remove('md:flex');
+                    editorPanel.classList.remove('md:w-1/2');
+                    editorPanel.classList.add('w-full');
+                    editorIcon.className = 'fa-solid fa-compress';
+                    showAlert('エディタを最大化しました。', 'fa-solid fa-expand');
+                }
+            } else if (pane === 'preview') {
+                if (editorPanel.classList.contains('hidden')) {
+                    // Restore default half-half view
+                    editorPanel.classList.remove('hidden');
+                    editorPanel.classList.add('md:flex');
+                    previewPanel.classList.add('md:w-1/2');
+                    previewIcon.className = 'fa-solid fa-expand';
+                    showAlert('通常表示に戻しました。', 'fa-solid fa-compress');
+                } else {
+                    // Fullscreen Preview
+                    editorPanel.classList.add('hidden');
+                    editorPanel.classList.remove('md:flex');
+                    previewPanel.classList.remove('md:w-1/2');
+                    previewPanel.classList.add('w-full');
+                    previewIcon.className = 'fa-solid fa-compress';
+                    showAlert('プレビューを最大化しました。', 'fa-solid fa-expand');
+                }
+            }
+        }
+
+        // Mobile responsive Tabs controller
+        function switchMobileTab(tab) {
+            activeMobileTab = tab;
+            const tabEditor = document.getElementById('tabBtnEditor');
+            const tabPreview = document.getElementById('tabBtnPreview');
+            const editorPanel = document.getElementById('editorPanel');
+            const previewPanel = document.getElementById('previewPanel');
+
+            if (tab === 'editor') {
+                tabEditor.className = 'flex-1 py-2 text-sm font-medium rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm flex items-center justify-center gap-2';
+                tabPreview.className = 'flex-1 py-2 text-sm font-medium rounded-md text-slate-600 dark:text-slate-400 flex items-center justify-center gap-2';
+                
+                editorPanel.classList.remove('hidden');
+                previewPanel.classList.add('hidden');
+                previewPanel.classList.remove('flex');
+            } else {
+                tabPreview.className = 'flex-1 py-2 text-sm font-medium rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm flex items-center justify-center gap-2';
+                tabEditor.className = 'flex-1 py-2 text-sm font-medium rounded-md text-slate-600 dark:text-slate-400 flex items-center justify-center gap-2';
+                
+                editorPanel.classList.add('hidden');
+                previewPanel.classList.remove('hidden');
+                previewPanel.classList.add('flex');
+            }
+        }
+
+        // Dark/Light Theme Switching
+        function toggleTheme() {
+            isDarkMode = !isDarkMode;
+            if (isDarkMode) {
+                document.documentElement.classList.add('dark');
+                themeIcon.className = 'fa-solid fa-sun text-amber-400';
+            } else {
+                document.documentElement.classList.remove('dark');
+                themeIcon.className = 'fa-solid fa-moon';
+            }
+        }
+
+        // Copy Code to Clipboard (Fallback for iframe environment compatibility)
+        function copyToClipboard() {
+            htmlEditor.select();
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showAlert('コードをクリップボードにコピーしました！', 'fa-solid fa-check text-emerald-500');
+                } else {
+                    showAlert('コピーに失敗しました。', 'fa-solid fa-xmark text-red-500');
+                }
+            } catch (err) {
+                showAlert('エラーが発生しました。', 'fa-solid fa-xmark text-red-500');
+            }
+            // Deselect text
+            window.getSelection().removeAllRanges();
+        }
+
+        // Download raw code content to local disk as HTML file
+        function downloadCode() {
+            const codeContent = htmlEditor.value;
+            const blob = new Blob([codeContent], { type: 'text/html;charset=utf-8;' });
+            const link = document.createElement('a');
+            
+            // Generate link payload
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'custom_preview.html');
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showAlert('HTMLファイルをエクスポートしました！', 'fa-solid fa-circle-down text-indigo-500');
+        }
+
+        // Clean slate editor
+        function clearEditor() {
+            if (confirm('エディタの内容を本当にすべて消去しますか？')) {
+                htmlEditor.value = '';
+                updateLineNumbers();
+                updatePreview(true);
+                showAlert('エディタをクリアしました。', 'fa-solid fa-trash-can');
+            }
+        }
+
+        // Display sleek custom alert
+        function showAlert(message, iconClass) {
+            const alertBox = document.getElementById('alertBox');
+            const alertMessage = document.getElementById('alertMessage');
+            const alertIcon = document.getElementById('alertIcon');
+
+            alertMessage.textContent = message;
+            alertIcon.innerHTML = '<i class="' + iconClass + '"></i>';
+
+            // Animate alert up
+            alertBox.classList.remove('translate-y-10', 'opacity-0', 'pointer-events-none');
+            alertBox.classList.add('translate-y-0', 'opacity-100');
+
+            // Hide alert after 3 seconds
+            setTimeout(function() {
+                alertBox.classList.remove('translate-y-0', 'opacity-100');
+                alertBox.classList.add('translate-y-10', 'opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+
+        // Start live editor app with Basic template on page load
+        window.onload = function() {
+            loadTemplate('basic');
+        }
+    </script>
+</body>
+</html>
